@@ -12,7 +12,7 @@
     "browserify": "browserify lib/app.js -o dist/bundle.js -d",
     "archive": "cp -rf dist releases/bitshares-paperwallet-$npm_package_version && cd releases && zip -r bitshares-paperwallet-$npm_package_version.zip bitshares-paperwallet-$npm_package_version",
     "checksums": "sha256sum releases/bitshares-paperwallet-$npm_package_version.zip && sha1sum releases/bitshares-paperwallet-$npm_package_version.zip",
-    "tag": "git tag -s $npm_package_version && git push --tags"
+    "tag": "git tag $npm_package_version && git push --tags"
   },
   "author": "",
   "license": "ISC",
