@@ -70,12 +70,15 @@
                         @click.prevent="registerAccount" type="button">
                     <fa :icon="registerIcon" v-bind:class="{'fa-spin': loading_register}" /> Register Account!</button>
 
-                    <b-modal ref="modal_account_created" title="Account Created Successfully">
-                    <p class="my-4">Hello from modal!</p>
-                    </b-modal>
-                    <b-modal ref="modal_account_failed" title="Account Creation Failed">
-                    <p class="my-4">Hello from modal!</p>
-                    </b-modal>
+                <b-modal ref="modal_account_created" title="Account Created Successfully">
+                    <p>Your account has been succesfully created!</p>
+                    <p>You can find all the details about your account in the 
+                    <a :href="'https://wallet.bitshares.eu/account/'+accountname+'/overview'" target="_blank">Explorer</a>
+                    </p>
+                </b-modal>
+                <b-modal ref="modal_account_failed" title="Account Creation Failed">
+                    <p>An error occured while creating your account!</p>
+                </b-modal>
             </div>
 
             <hr />
@@ -100,9 +103,9 @@ export default {
     },
     data () {
         return {
-            accountname: "test-faucet-",
-            password: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            password_verify: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            accountname: null,
+            password: null,
+            password_verify: null,
             loginKey: null,
             errors: [],
             print_password: false,
