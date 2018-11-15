@@ -168,7 +168,7 @@ export default {
              );
         },
         async faucetRequest(query) {
-            let url = "https://faucet.bitshares.eu/api/v1/accounts";
+            let url = "https://faucet.bitshares.eu/paperwallet/api/v1/accounts";
             let response = await fetch(
                 url, {
                 method: "POST",
