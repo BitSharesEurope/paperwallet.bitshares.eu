@@ -1,0 +1,31 @@
+language: node_js
+node_js: 9
+env:
+  global:
+  - GITHUB_REPO: bitshareseurope/paperwallet.bitshares.eu
+  - CXX: g++-4.8
+  - secure: f86VfjseWQUiU4gMpjMv4yqdw3sHXGeS4N/x3CnJ+KQ1QgXo8lTv9u5sRvpVsSWsBzsn2Dglm/dZleR6yg9LKqv5qoPMQwTkX5WvVB5vkaIh74CWiJoeGVlnBOIXXcIesiTfuvvUQJU5H+vuw/c4/WDBqer3H7c4HB+niSlwoD2JBNzf30I154BPD1XhZhELidxIaGO43DUviaFR6F4AImKwbZ4Sl4dVYXpkyxXTW/vI9SMIbQrqq+jJQ1keMOpspCnOrS1ybpupZ+JiLUHoJLPzNiqex34FajFCTeX61ctGmp6KztFH/j5aONJLM71SfcrsJyhNSk6F7EFqR/55qaPRjehy5bExN7lnv0h3tKAvpSeV1NeaQPHjKYc2Jj9+ASKMA9HyChv8/yAtHTTyvEg+V/nFGQY68kneqUvi61uNSQFYY/MFnerN8hrYcHZwlzcJKMrd/B4TtUYCNXpqcPdbPq7A0XUiIgZTQ4zC/6yjYY4qDDCsRQth+mQOJRl9cqlrkm3JrnjOTg+WQSAX/GENkd8d9rvirBy6v7xddZIqXS6+XPWaxbLMwEJ4UV86duAV3sF6a/VoE0kpBQdOv/d0Sr6hfbdXpv3FfsjeBEJlVKmLcZcRPWPaIjtval5qxj5O4thEqUTYy5CXz3l5QI2tY2qbBDQh7QE+5Y92uvk=
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - g++-4.8
+cache:
+  directories:
+  - node_modules
+install:
+- npm i
+script:
+- npm run build
+notifications:
+  email: false
+deploy:
+  provider: pages
+  skip-cleanup: true
+  local_dir: dist
+  github-token: "$GITHUB_TOKEN"
+  repo: "$GITHUB_REPO"
+  keep-history: true
+  on:
+    branch: master
