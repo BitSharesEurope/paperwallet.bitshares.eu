@@ -203,8 +203,8 @@ export default {
                 account: {
                     name: this.accountname,
                     active_key: this.loginKey.pubKeys.active,
-                    owner_key: this.loginKey.pubKeys.active,
-                    memo_key: this.loginKey.pubKeys.active,
+                    owner_key: this.loginKey.pubKeys.owner,
+                    memo_key: this.loginKey.pubKeys.memo,
                 }
             }
             this.faucetRequest(query)
