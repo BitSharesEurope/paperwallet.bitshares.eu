@@ -1,6 +1,13 @@
 <template>
     <div class="container">
-        <PaperWallet />
+        <div class="row" style="margin-top:15px">
+            <div class="col-md-12 text-center">
+                <img src="/logo.png" width="128px" />
+            </div>
+            <div class="col-md-12" style="margin-top:15px">
+                <PaperWallet />
+            </div>
+        </div>
     </div>
 </template>
 

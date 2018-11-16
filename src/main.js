@@ -9,7 +9,8 @@ import { faUser,
          faEyeSlash,
          faArrowCircleRight,
          faSpinner,
-         faQrcode
+         faQrcode,
+         faDice
        } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
@@ -21,7 +22,8 @@ library.add([
     faEyeSlash,
     faArrowCircleRight,
     faSpinner,
-    faQrcode
+    faQrcode,
+    faDice
 ])
 Vue.component('fa', FontAwesomeIcon)
 Vue.config.productionTip = false

@@ -1,7 +1,7 @@
 <template>
     <div>
-        <h2>BitShares Permission Keys &nbsp;
-            <small>{{accountname}}</small>
+        <h2>PaperWallet/ColdStorage &nbsp;
+            <span class="small" v-if="accountname">(<tt>{{accountname}}</tt>)</span>
         </h2>
         <div v-if="print_password" class="d-none d-print-block">
             <div class="panel panel-danger">
@@ -19,34 +19,59 @@
                     <label>
                         <fa icon="user" />
                         Account Name
+                        <span
+                            :class="{'badge': true,
+                                     'badge-success': !premium_account,
+                                     'badge-danger': premium_account
+                                     }">{{premium_account_text}}</span>
                     </label>
                     <input 
-                         v-model="accountname"
-                         @input.prevent="form_updated"
-                         class="form-control" type=text name="name" />
+                        tabindex=1
+                        autofocus
+                        v-model="accountname"
+                        @input.prevent="form_updated"
+                        class="form-control" type=text name="name" />
                 </div>
                 <div class="form-group">
                     <label>
                         <fa icon="key" />
                         Password
-                        <fa :icon="passwordIcon" @click.prevent="toggleVisibility()"/>
                     </label>
-                    <input
-                        v-model="password"
-                        @input.prevent="form_updated"
-                        class="form-control"
-                        :type="passwordFieldType" />
+                    <div class="input-group">
+                        <input
+                            tabindex=2
+                            v-model="password"
+                            @input.prevent="form_updated"
+                            class="form-control"
+                            :type="passwordFieldType" />
+                        <span class="input-group-btn">
+                            <button class="btn btn-link" type="button" @click.prevent="toggleVisibility()">
+                                <fa :icon="passwordIcon"/>
+                            </button>
+                            <button class="btn btn-link" type="button" @click.prevent="useRandomPassword()">
+                                <fa icon="dice" />
+                            </button>
+                        </span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>
                         <fa icon="key" />
                         Confirm Password
                     </label>
-                    <input
-                        v-model="password_verify"
-                        @input.prevent="form_updated"
-                        class="form-control"
-                        type=password />
+                    <div class="input-group">
+                        <input
+                            tabindex=3
+                            v-model="password_verify"
+                            @input.prevent="form_updated"
+                            class="form-control"
+                            :type="passwordFieldType" />
+                        <span class="input-group-btn">
+                            <button class="btn btn-link" type="button" @click.prevent="toggleVisibility()">
+                                <fa :icon="passwordIcon"/>
+                            </button>
+                        </span>
+                    </div>
                 </div>
                 <div>
                     <p v-if="errors.length">
@@ -107,6 +132,7 @@
 <script>
 import PaperWalletKey from './PaperWalletKey.vue'
 import {Login} from "bitsharesjs"
+import bip39 from "bip39"
 
 export default {
     name: 'PaperWallet',
@@ -126,6 +152,7 @@ export default {
             loading_register: false,
             account_registered: false,
             registerResponseError: [],
+            premium_account_text: "",
         }
     },
     computed: {
@@ -135,11 +162,27 @@ export default {
         valid() {
             return (this.errors.length === 0);
         },
+        is_premium_name() {
+            return true;
+        }
     },
     methods: {
-        toggleVisibility() {
-            this.passwordFieldType = this.passwordFieldType === "password" ?  "text": "password";
-            this.passwordIcon = this.passwordFieldType === "password" ? "eye" : "eye-slash"
+        is_premium_account() {
+            let r = RegExp("[0-9./-]");
+            let r1 = RegExp("[aeiouy]");
+            if (!r.test(this.accountname) || !r1.test(this.accountname)) {
+                this.premium_account_text = "Premium Account"
+                this.premium_account = true
+                return true
+            } else {
+                this.premium_account_text = "Regular Account"
+                this.premium_account = false
+                return false
+            }
+        },
+        toggleVisibility(e) {
+            this.passwordFieldType = (e || this.passwordFieldType === "password") ?  "text": "password";
+            this.passwordIcon = (e || this.passwordFieldType === "password") ? "eye" : "eye-slash"
         },
         printPassword() {
             this.print_password = true
@@ -152,6 +195,15 @@ export default {
         printDialog() {
             window.print();
         },
+        useRandomPassword() {
+            this.password = this.generatePassword(16);
+            this.password_verify = this.password;
+            this.toggleVisibility(true);
+            this.form_updated()
+        },
+        generatePassword (length) {
+            return bip39.generateMnemonic();
+        },
         validate_form() {
             this.errors = [];
             if (!this.password || this.password.length < 16) {
@@ -162,6 +214,9 @@ export default {
             }
             if (!this.accountname || this.accountname.length < 3) {
                 this.errors.push('Account name required! Minimum length: 3');
+            }
+            if (this.is_premium_account()) {
+                this.errors.push('Only regular accounts are supported here!');
             }
             if (this.errors.length == 0) {
                 return true;
