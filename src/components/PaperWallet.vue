@@ -21,9 +21,9 @@
                         Account Name
                     </label>
                     <input 
-                               v-model="accountname"
-                               @input="form_updated"
-                               class="form-control" type=text name="name" />
+                         v-model="accountname"
+                         @input.prevent="form_updated"
+                         class="form-control" type=text name="name" />
                 </div>
                 <div class="form-group">
                     <label>
@@ -33,7 +33,7 @@
                     </label>
                     <input
                         v-model="password"
-                        @input="form_updated"
+                        @input.prevent="form_updated"
                         class="form-control"
                         :type="passwordFieldType" />
                 </div>
@@ -44,7 +44,7 @@
                     </label>
                     <input
                         v-model="password_verify"
-                        @input="form_updated"
+                        @input.prevent="form_updated"
                         class="form-control"
                         type=password />
                 </div>
@@ -59,29 +59,41 @@
             </form>
         </div>
         <div v-if="loginKey">
-            <div class="btn-group d-print-none">
-                <button class="btn btn-secondary"
-                        @click.prevent="print" type="button">
-                    <fa icon="print" /> Print</button>
-                <button class="btn btn-warning"
-                        @click.prevent="printPassword" type="button">
-                    <fa icon="print" /> Print <strong>with <fa icon="key" /></strong></button>
-                <button class="btn btn-alert"
-                        @click.prevent="registerAccount" type="button">
-                    <fa :icon="registerIcon" v-bind:class="{'fa-spin': loading_register}" /> Register Account!</button>
+            <div class="form-group d-print-none">
+                <div class="btn-group">
+                    <button class="btn btn-secondary"
+                            @click.prevent="print" type="button">
+                        <fa icon="print" /> Print <strong>only <fa icon="qrcode" /></strong></button>
+                    <button class="btn btn-warning"
+                            @click.prevent="printPassword" type="button">
+                        <fa icon="print" /> Print <strong><fa icon="qrcode" /> and <fa icon="key" /></strong></button>
+                    <button class="btn btn-alert"
+                            @click.prevent="registerAccount"
+                            :disabled="loading_register"
+                            type="button">
+                        <fa :icon="registerIcon" v-bind:class="{'fa-spin': loading_register}" /> Register Account!<sup>*</sup></button>
+                </div>
+                <small id="fileHelp" class="form-text text-muted">
+                    <sup>*)</sup>By pressing <i>Register Account!</i>, you agree to the 
+                    <a href="https://bitshares.eu/terms" target="_blank">
+                        terms&conditions of the BitShares Europe Faucet</a>
+                </small>
 
-                <b-modal ref="modal_account_created" title="Account Created Successfully">
+                <hr />
+
+                <b-modal ok-only ok-variant="outline-danger" ref="modal_account_created" title="Account Created Successfully">
                     <p>Your account has been succesfully created!</p>
                     <p>You can find all the details about your account in the 
                     <a :href="'https://wallet.bitshares.eu/account/'+accountname+'/overview'" target="_blank">Explorer</a>
                     </p>
                 </b-modal>
-                <b-modal ref="modal_account_failed" title="Account Creation Failed">
+                <b-modal ok-only ok-variant="outline-danger" ref="modal_account_failed" title="Account Creation Failed">
                     <p>An error occured while creating your account!</p>
+                    <ul>
+                        <li :key="error" v-for="error in registerResponseError">{{ error }}</li>
+                    </ul>
                 </b-modal>
             </div>
-
-            <hr />
 
             <div>
                 <PaperWalletKey type="owner" :loginKey="loginKey"/>
@@ -109,17 +121,20 @@ export default {
             loginKey: null,
             errors: [],
             print_password: false,
-            valid: false,
             passwordFieldType: "password",
             passwordIcon: "eye",
             loading_register: false,
             account_registered: false,
+            registerResponseError: [],
         }
     },
     computed: {
         registerIcon() {
             return this.loading_register ? "spinner" : 'arrow-circle-right';
-        }
+        },
+        valid() {
+            return (this.errors.length === 0);
+        },
     },
     methods: {
         toggleVisibility() {
@@ -137,7 +152,7 @@ export default {
         printDialog() {
             window.print();
         },
-        validate_form: function(e) {
+        validate_form() {
             this.errors = [];
             if (!this.password || this.password.length < 16) {
                 this.errors.push("Password is too short! Need at least 16 characters");
@@ -148,19 +163,21 @@ export default {
             if (!this.accountname || this.accountname.length < 3) {
                 this.errors.push('Account name required! Minimum length: 3');
             }
-            e.preventDefault();
             if (this.errors.length == 0) {
-                this.valid = true;
                 return true;
             } else {
-                this.valid = false;
                 return false;
             }
         },
-        form_updated: function (e) {
-            if (this.validate_form(e)) {
+        async form_updated() {
+            if (this.validate_form()) {
                 this.generateLoginKey();
+            } else {
+                this.clearLoginKey();
             }
+        },
+        clearLoginKey() {
+            this.loginKey = null;
         },
         generateLoginKey () {
              this.loginKey = Login.generateKeys(
@@ -194,6 +211,7 @@ export default {
             .catch(reason => this.errors.push(reason))
             .then(response => {
                 if (response &&
+                    !response.error &&
                     response.account &&
                     response.account.name == query.account.name &&
                     response.account.active_key == query.account.active_key &&
@@ -204,11 +222,13 @@ export default {
                     this.loading_register = false
                     this.$refs.modal_account_created.show()
                 } else {
+                    if (response.error) {
+                        this.registerResponseError = response.error.base;
+                    }
                     this.account_registered = false;
                     this.loading_register = false
                     this.$refs.modal_account_failed.show()
                 }
-                    
             });
         }
     }
