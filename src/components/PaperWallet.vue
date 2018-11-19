@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div ref="print">
         <h2>PaperWallet/ColdStorage &nbsp;
             <span class="small" v-if="accountname">(<tt>{{accountname}}</tt>)</span>
         </h2>
@@ -45,11 +45,11 @@
                             class="form-control"
                             :type="passwordFieldType" />
                         <span class="input-group-btn">
-                            <button class="btn btn-link" type="button" @click.prevent="toggleVisibility()">
-                                <fa :icon="passwordIcon"/>
-                            </button>
                             <button class="btn btn-link" type="button" @click.prevent="useRandomPassword()">
                                 <fa icon="dice" />
+                            </button>
+                            <button class="btn btn-link" type="button" @click.prevent="toggleVisibility()">
+                                <fa :icon="passwordIcon"/>
                             </button>
                         </span>
                     </div>
@@ -133,6 +133,8 @@
 import PaperWalletKey from './PaperWalletKey.vue'
 import {Login} from "bitsharesjs"
 import bip39 from "bip39"
+import html2canvas from "html2canvas"
+import jsPDF from "jspdf"
 
 export default {
     name: 'PaperWallet',
@@ -170,10 +172,8 @@ export default {
     methods: {
         _is_premium_name() {
             if (RegExp("[0-9/.-]").test(this.accountname)) {
-                console.log("treffer");
                 return false;
             } else {
-                console.log("kein treffer");
                 if (RegExp("[aeiouy]").test(this.accountname)) {
                     return true
                 } else {
@@ -194,7 +194,7 @@ export default {
         },
         toggleVisibility(e) {
             this.passwordFieldType = (e || this.passwordFieldType === "password") ?  "text": "password";
-            this.passwordIcon = (e || this.passwordFieldType === "password") ? "eye" : "eye-slash"
+            this.passwordIcon = (e || this.passwordFieldType === "password") ? "eye-slash" : "eye";
         },
         printPassword() {
             this.print_password = true
