@@ -153,6 +153,7 @@ export default {
             account_registered: false,
             registerResponseError: [],
             premium_account_text: "",
+            premium_account: null,
         }
     },
     computed: {
@@ -167,10 +168,21 @@ export default {
         }
     },
     methods: {
+        _is_premium_name() {
+            if (RegExp("[0-9/.-]").test(this.accountname)) {
+                console.log("treffer");
+                return false;
+            } else {
+                console.log("kein treffer");
+                if (RegExp("[aeiouy]").test(this.accountname)) {
+                    return true
+                } else {
+                    return false;
+                }
+            }
+        },
         is_premium_account() {
-            let r = RegExp("[0-9./-]");
-            let r1 = RegExp("[aeiouy]");
-            if (!r.test(this.accountname) || !r1.test(this.accountname)) {
+            if (this._is_premium_name()) {
                 this.premium_account_text = "Premium Account"
                 this.premium_account = true
                 return true
