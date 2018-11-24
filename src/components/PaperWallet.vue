@@ -73,6 +73,36 @@
                         </span>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>
+                        <fa 
+                            :icon="gift_code_icon"
+                            :class="{'fa-spin': (gift_code_icon!='gift')}"
+                         />
+                        Claim Coupon Code
+                        <small class="text-muted">(optional)</small>
+                        <span v-if="coupon.allow_register_premium_account" class="badge badge-success">
+                            Premium Accounts allowed
+                        </span>
+                        <span v-if="coupon.amount" class="badge badge-primary">
+                            <strong>{{coupon.amount}} {{coupon.symbol}}</strong>
+                        </span>
+                    </label>
+                    <div class="input-group">
+                        <input
+                            tabindex=4
+                            type="text"
+                            placeholder="Coupon Code"
+                            v-model.lazy="coupon_code"
+                            v-debounce="500"
+                            @input.prevent="coupon_reload"
+                            class="form-control"/>
+                    </div>
+                    <div class="alert alert-danger" v-if="coupon_error">
+                        <h5 class="alert-heading"><strong>Coupon Error!</strong></h5>
+                        {{coupon_error}}
+                    </div>
+                </div>
                 <div>
                     <p v-if="errors.length">
                     <b>Please correct the following error(s):</b>
@@ -134,13 +164,15 @@ import PaperWalletKey from './PaperWalletKey.vue'
 import {Login} from "bitsharesjs"
 import bip39 from "bip39"
 import html2canvas from "html2canvas"
-import jsPDF from "jspdf"
+import debounce from 'v-debounce'
+
 
 export default {
     name: 'PaperWallet',
     components: {
         PaperWalletKey
     },
+    directives: {debounce},
     data () {
         return {
             accountname: null,
@@ -156,6 +188,10 @@ export default {
             registerResponseError: [],
             premium_account_text: "",
             premium_account: null,
+            coupon_code: "",
+            gift_code_icon: "gift",
+            coupon: {},
+            coupon_error: null
         }
     },
     computed: {
@@ -167,6 +203,11 @@ export default {
         },
         is_premium_name() {
             return true;
+        }
+    },
+    watch: {
+        coupon_code () {
+            this.load_coupon();
         }
     },
     methods: {
@@ -191,6 +232,46 @@ export default {
                 this.premium_account = false
                 return false
             }
+        },
+        coupon_reload() {
+            this.gift_code_icon = "spinner";
+        },
+        async load_coupon() {
+            if (this.coupon_code) {
+                try {
+                    let url = "http://localhost:5000/coupon/api/info/" + this.coupon_code + "/";
+                    let response = await fetch(url)
+                    if (response.status != 200) {
+                        throw new Error(response.status)
+                    }
+                    this.coupon_error = null;
+                    let c = await response.json();
+                    if (c.state != "FUNDED")
+                        throw new Error(c.state)
+                    this.coupon = c;
+
+                } catch (e) {
+                    let msg = "";
+                    if (e.message == 404)
+                        msg = "Code not found";
+                    else if (e.message == 302)
+                        msg = "Code not found";
+                    else if (e.message == 429)
+                        msg = "You've been trying too many codes! Please try again later!";
+                    else
+                        msg = "Error: " + e.message;
+                    this.coupon_error = msg;
+                    this.coupon = {};
+                }
+            } else {
+                this.coupon_error = null;
+                this.coupon = {};
+            }
+            // Now that we loaded from the API, let's revalidate
+            // e.g. to allow premium accounts
+            this.form_updated()
+
+            this.gift_code_icon = "gift";
         },
         toggleVisibility(e) {
             this.passwordFieldType = (e || this.passwordFieldType === "password") ?  "text": "password";
@@ -228,7 +309,8 @@ export default {
                 this.errors.push('Account name required! Minimum length: 3');
             }
             if (this.is_premium_account()) {
-                this.errors.push('Only regular accounts are supported here!');
+                if (!this.coupon.allow_register_premium_account)
+                    this.errors.push('Only regular accounts are supported here!');
             }
             if (this.errors.length == 0) {
                 return true;
