@@ -322,7 +322,7 @@ export default {
         async load_coupon() {
             if (this.coupon_code) {
                 try {
-                    let url = "http://localhost:5000/coupon/api/info/" + this.coupon_code + "/";
+                    let url = "https://bitshares.eu/coupon/api/info/" + this.coupon_code + "/";
                     let response = await fetch(url)
                     if (response.status != 200) {
                         throw new Error(response.status)
