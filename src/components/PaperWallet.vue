@@ -73,11 +73,11 @@
                         </span>
                     </div>
                 </div>
-                <div class="form-group">
+                <div class="form-group" v-if="enable_coupon">
                     <label>
                         <fa 
                             :icon="gift_code_icon"
-                            :class="{'fa-spin': (gift_code_icon!='gift')}"
+                            :class="{'fa-spin': (gift_code_icon!='barcode')}"
                          />
                         Claim Coupon Code
                         <small class="text-muted">(optional)</small>
@@ -90,12 +90,28 @@
                     </label>
                     <div class="input-group">
                         <input
-                            tabindex=4
+                            tabindex=5
                             type="text"
                             placeholder="Coupon Code"
                             v-model.lazy="coupon_code"
                             v-debounce="500"
                             @input.prevent="coupon_reload"
+                            class="form-control"/>
+                    </div>
+                </div>
+                <div class="form-group" v-if="enable_coupon">
+                    <label>
+                        <fa icon="at" />
+                        Email Address
+                    </label>
+                    <div class="input-group">
+                        <input
+                            tabindex=5
+                            type="text"
+                            placeholder="email@example.com"
+                            v-model.lazy="email"
+                            v-debounce="500"
+                            @input.prevent="update_email"
                             class="form-control"/>
                     </div>
                     <div class="alert alert-danger" v-if="coupon_error">
@@ -111,22 +127,38 @@
                     </ul>
                     </p>
                 </div>
+                <div class="form-check">
+                    <input
+                        tabindex=4
+                        v-model="enable_coupon"
+                        class="form-check-input"
+                        type="checkbox" />
+                    <div class="form-check-label">
+                        Use a Coupon Code
+                        <fa icon="gift" />
+                    </div>
+                </div>
             </form>
         </div>
         <div v-if="loginKey">
             <div class="form-group d-print-none">
                 <div class="btn-group">
-                    <button class="btn btn-secondary"
-                            @click.prevent="print" type="button">
-                        <fa icon="print" /> Print <strong>only <fa icon="qrcode" /></strong></button>
                     <button class="btn btn-warning"
                             @click.prevent="printPassword" type="button">
                         <fa icon="print" /> Print <strong><fa icon="qrcode" /> and <fa icon="key" /></strong></button>
-                    <button class="btn btn-alert"
+                    <button class="btn btn-primary"
                             @click.prevent="registerAccount"
                             :disabled="loading_register"
                             type="button">
-                        <fa :icon="registerIcon" v-bind:class="{'fa-spin': loading_register}" /> Register Account!<sup>*</sup></button>
+                        <fa :icon="registerIcon" v-bind:class="{'fa-spin': loading_register}" /> Automatic Account!<sup>*</sup></button>
+
+                    <button class="btn btn-secondary"
+                            @click.prevent="showRegistrationQuery"
+                            type="button">
+                        <fa icon="code" />Manual Registration</button>
+                    <button class="btn btn-secondary"
+                            @click.prevent="print" type="button">
+                        <fa icon="print" /> Print <strong>only <fa icon="qrcode" /></strong></button>
                 </div>
                 <small id="fileHelp" class="form-text text-muted">
                     <sup>*)</sup>By pressing <i>Register Account!</i>, you agree to the 
@@ -147,6 +179,31 @@
                     <ul>
                         <li :key="error" v-for="error in registerResponseError">{{ error }}</li>
                     </ul>
+                </b-modal>
+                <b-modal ok-only ok-variant="outline-danger" ref="modal_show_query" title="Registration Query" size="lg">
+                    <p>
+                    The purpose of this popup is to present the information
+                    sent over to the account registration service (a.k.a.
+                    faucet). It is particularly useful if you are running this
+                    site on a computer that is not internet connected to
+                    establish a <strong>cold</strong> paperwallet.</p>
+                    <p>
+                    Below, you can find the request string that has to be sent
+                    to our faucet endpoint</p>
+                    <blockquote>
+                        <tt>{{faucet_url}}</tt>
+                    </blockquote>
+                    <div class="form-group">
+                        <label><strong>Raw POST query</strong></label>
+                        <textarea class="form-control myquery" rows="8" v-model="query_string"></textarea>
+                    </div> 
+                    <p>
+                    Alternatively, copy&paste the CURL command:
+                    </p>
+                    <div class="form-group">
+                        <label><strong>CURL command</strong></label>
+                        <textarea class="form-control myquery" rows="5" v-model="query_curl"></textarea>
+                    </div> 
                 </b-modal>
             </div>
 
@@ -175,6 +232,7 @@ export default {
     directives: {debounce},
     data () {
         return {
+            faucet_url: "https://faucet.bitshares.eu/paperwallet/api/v1/accounts",
             accountname: null,
             password: null,
             password_verify: null,
@@ -188,10 +246,12 @@ export default {
             registerResponseError: [],
             premium_account_text: "",
             premium_account: null,
+            enable_coupon: false,
             coupon_code: "",
-            gift_code_icon: "gift",
+            gift_code_icon: "barcode",
             coupon: {},
-            coupon_error: null
+            coupon_error: null,
+            email: "",
         }
     },
     computed: {
@@ -203,6 +263,29 @@ export default {
         },
         is_premium_name() {
             return true;
+        },
+        query_string() {
+            return JSON.stringify(this.query, null, 4)
+        },
+        query_curl() {
+            let query_s = JSON.stringify(this.query)
+            return `curl -d '${ query_s }' -H 'Content-Type: application/json' -X POST ${this.faucet_url}`
+        },
+        query() {
+            if (this.loginKey) {
+                return {
+                    account: {
+                        name: this.accountname,
+                        active_key: this.loginKey.pubKeys.active,
+                        owner_key: this.loginKey.pubKeys.owner,
+                        memo_key: this.loginKey.pubKeys.memo,
+                        coupon: this.coupon.code,
+                        email: this.email,
+                    }
+                }
+            } else {
+                return {}
+            }
         }
     },
     watch: {
@@ -271,7 +354,7 @@ export default {
             // e.g. to allow premium accounts
             this.form_updated()
 
-            this.gift_code_icon = "gift";
+            this.gift_code_icon = "barcode";
         },
         toggleVisibility(e) {
             this.passwordFieldType = (e || this.passwordFieldType === "password") ?  "text": "password";
@@ -336,29 +419,21 @@ export default {
                  "BTS"
              );
         },
-        async faucetRequest(query) {
-            let url = "https://faucet.bitshares.eu/paperwallet/api/v1/accounts";
+        async faucetRequest() {
             let response = await fetch(
-                url, {
+                this.faucet_url, {
                 method: "POST",
                 headers: {"Content-Type": "application/json; charset=utf-8"},
-                body: JSON.stringify(query)
+                body: JSON.stringify(this.query)
             })
             return await response.json()
         },
         async registerAccount() {
             this.loading_register = true
-            let query = {
-                account: {
-                    name: this.accountname,
-                    active_key: this.loginKey.pubKeys.active,
-                    owner_key: this.loginKey.pubKeys.owner,
-                    memo_key: this.loginKey.pubKeys.memo,
-                }
-            }
-            this.faucetRequest(query)
+            this.faucetRequest()
             .catch(reason => this.errors.push(reason))
             .then(response => {
+                let query = this.query;
                 if (response &&
                     !response.error &&
                     response.account &&
@@ -379,17 +454,17 @@ export default {
                     this.$refs.modal_account_failed.show()
                 }
             });
+        },
+        showRegistrationQuery() {
+            this.$refs.modal_show_query.show()
         }
     }
 }
 </script>
 
-<style>
-.headline {
-    background: #eee;
-}
-tr > td {
-    padding-top: 0;
-    padding-bottom: 0;
+<style scoped>
+.myquery {
+    font-family: 'DejaVu Sans Mono', monospace;
+    font-size: 8pt;
 }
 </style>

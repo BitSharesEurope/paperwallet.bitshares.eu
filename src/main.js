@@ -11,7 +11,10 @@ import { faUser,
          faSpinner,
          faQrcode,
          faDice,
-         faGift
+         faGift,
+         faCode,
+         faBarcode,
+         faAt,
        } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
@@ -25,7 +28,10 @@ library.add([
     faSpinner,
     faQrcode,
     faDice,
-    faGift
+    faGift,
+    faCode,
+    faBarcode,
+    faAt,
 ])
 Vue.component('fa', FontAwesomeIcon)
 Vue.config.productionTip = false
