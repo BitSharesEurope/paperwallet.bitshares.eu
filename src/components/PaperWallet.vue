@@ -1,6 +1,8 @@
 <template>
-    <div ref="print">
-        <h2>PaperWallet/ColdStorage &nbsp;
+    <div style="margin-top:15px">
+        <h2>
+            <img src="/logo.png" width="42px" style="padding: 5px; margin-bottom:10px"/>
+            PaperWallet/ColdStorage &nbsp;
             <span class="small" v-if="accountname">(<tt>{{accountname}}</tt>)</span>
         </h2>
         <div v-if="print_password" class="d-none d-print-block">
@@ -30,7 +32,6 @@
                         autofocus
                         v-model.lazy="accountname"
                         v-debounce="500"
-                        @input.prevent="form_updated"
                         class="form-control" type=text name="name" />
                 </div>
                 <div class="form-group">
@@ -41,7 +42,7 @@
                     <div class="input-group">
                         <input
                             tabindex=2
-                            v-model.lazy="password"
+                            v-model="password"
                             v-debounce="500"
                             @input.prevent="form_updated"
                             class="form-control"
@@ -64,7 +65,7 @@
                     <div class="input-group">
                         <input
                             tabindex=3
-                            v-model.lazy="password_verify"
+                            v-model="password_verify"
                             v-debounce="500"
                             @input.prevent="form_updated"
                             class="form-control"
@@ -83,7 +84,6 @@
                             :class="{'fa-spin': (gift_code_icon!='barcode')}"
                          />
                         Claim Coupon Code
-                        <small class="text-muted">(optional)</small>
                         <span v-if="coupon.allow_register_premium_account" class="badge badge-success">
                             Premium Accounts allowed
                         </span>
@@ -112,21 +112,20 @@
                             tabindex=5
                             type="text"
                             placeholder="email@example.com"
+                            @input.prevent="form_updated"
                             v-model="email"
                             class="form-control"/>
                     </div>
-                    <div class="alert alert-danger" v-if="coupon_error">
-                        <h5 class="alert-heading"><strong>Coupon Error!</strong></h5>
-                        {{coupon_error}}
-                    </div>
                 </div>
-                <div>
-                    <p v-if="errors.length">
-                    <b>Please correct the following error(s):</b>
-                    <ul>
-                        <li :key="error" v-for="error in errors">{{ error }}</li>
-                    </ul>
-                    </p>
+                <div class="alert alert-danger" role="alert" v-if="errors.length">
+                    <h5 class="alert-heading">Woops, something is wrong!</h5>
+                    <small>
+                        <b>Please correct the following error(s):</b>
+                        <hr>
+                        <ul>
+                            <li :key="error" v-for="error in errors">{{ error }}</li>
+                        </ul>
+                    </small>
                 </div>
                 <div class="form-check">
                     <input
@@ -175,7 +174,11 @@
                     <a class="ui basic primary button" :href="'https://wallet.bitshares.eu/account/'+accountname+'/overview'" target="_blank">Explorer</a>
                     </p>
                     <hr />
-                    {{response.coupon}}
+                    <div v-if="response.coupon">
+                        <div class="alert alert-success" v-if="response.coupon.message">
+                            {{response.coupon.message}}
+                        </div>
+                    </div>
                 </b-modal>
                 <b-modal ok-only ok-variant="outline-danger" ref="modal_account_failed" title="Account Creation Failed">
                     <p>An error occured while creating your account!</p>
@@ -235,10 +238,10 @@ export default {
     directives: {debounce},
     data () {
         return {
-            //faucet_url: "https://faucet.bitshares.eu/paperwallet/api/v1/accounts",
-            //coupon_url: "https://bitshares.eu/coupon/api/info/"
-            faucet_url: "https://localhost:5001/api/v1/accounts",
-            coupon_url: "http://localhost:5000/coupon/api/info/",
+            faucet_url: "https://faucet.bitshares.eu/paperwallet/api/v1/accounts",
+            coupon_url: "https://bitshares.eu/coupon/api/info/",
+            //faucet_url: "https://localhost:5001/api/v1/accounts",
+            //coupon_url: "http://localhost:5000/coupon/api/info/",
             accountname: null,
             password: null,
             password_verify: null,
@@ -303,6 +306,12 @@ export default {
     watch: {
         coupon_code () {
             this.load_coupon();
+        },
+        accountname () {
+            this.form_updated()
+        },
+        enable_coupon() {
+            this.form_updated()
         }
     },
     methods: {
@@ -407,14 +416,14 @@ export default {
                 if (!this.coupon.allow_register_premium_account)
                     this.errors.push('Only regular accounts are supported here!');
             }
-            /*
             if (this.enable_coupon) {
                 if (!this.email)
                     this.errors.push('Email address required for claiming coupon!');
                 if (!this.coupon_code)
                     this.errors.push('Coupon code missing!');
             }
-            */
+            if (this.coupon_error)
+                this.errors.push(this.coupon_error);
             if (this.errors.length == 0) {
                 return true;
             } else {
