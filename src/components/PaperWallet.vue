@@ -28,7 +28,8 @@
                     <input 
                         tabindex=1
                         autofocus
-                        v-model="accountname"
+                        v-model.lazy="accountname"
+                        v-debounce="500"
                         @input.prevent="form_updated"
                         class="form-control" type=text name="name" />
                 </div>
@@ -40,7 +41,8 @@
                     <div class="input-group">
                         <input
                             tabindex=2
-                            v-model="password"
+                            v-model.lazy="password"
+                            v-debounce="500"
                             @input.prevent="form_updated"
                             class="form-control"
                             :type="passwordFieldType" />
@@ -62,7 +64,8 @@
                     <div class="input-group">
                         <input
                             tabindex=3
-                            v-model="password_verify"
+                            v-model.lazy="password_verify"
+                            v-debounce="500"
                             @input.prevent="form_updated"
                             class="form-control"
                             :type="passwordFieldType" />
@@ -109,9 +112,7 @@
                             tabindex=5
                             type="text"
                             placeholder="email@example.com"
-                            v-model.lazy="email"
-                            v-debounce="500"
-                            @input.prevent="update_email"
+                            v-model="email"
                             class="form-control"/>
                     </div>
                     <div class="alert alert-danger" v-if="coupon_error">
@@ -171,8 +172,10 @@
                 <b-modal ok-only ok-variant="outline-danger" ref="modal_account_created" title="Account Created Successfully">
                     <p>Your account has been succesfully created!</p>
                     <p>You can find all the details about your account in the 
-                    <a :href="'https://wallet.bitshares.eu/account/'+accountname+'/overview'" target="_blank">Explorer</a>
+                    <a class="ui basic primary button" :href="'https://wallet.bitshares.eu/account/'+accountname+'/overview'" target="_blank">Explorer</a>
                     </p>
+                    <hr />
+                    {{response.coupon}}
                 </b-modal>
                 <b-modal ok-only ok-variant="outline-danger" ref="modal_account_failed" title="Account Creation Failed">
                     <p>An error occured while creating your account!</p>
@@ -232,7 +235,10 @@ export default {
     directives: {debounce},
     data () {
         return {
-            faucet_url: "https://faucet.bitshares.eu/paperwallet/api/v1/accounts",
+            //faucet_url: "https://faucet.bitshares.eu/paperwallet/api/v1/accounts",
+            //coupon_url: "https://bitshares.eu/coupon/api/info/"
+            faucet_url: "https://localhost:5001/api/v1/accounts",
+            coupon_url: "http://localhost:5000/coupon/api/info/",
             accountname: null,
             password: null,
             password_verify: null,
@@ -252,6 +258,7 @@ export default {
             coupon: {},
             coupon_error: null,
             email: "",
+            response: {},
         }
     },
     computed: {
@@ -273,16 +280,21 @@ export default {
         },
         query() {
             if (this.loginKey) {
-                return {
+                let basic = {
                     account: {
                         name: this.accountname,
                         active_key: this.loginKey.pubKeys.active,
                         owner_key: this.loginKey.pubKeys.owner,
                         memo_key: this.loginKey.pubKeys.memo,
-                        coupon: this.coupon.code,
+                    }
+                }
+                if (this.coupon.code && this.email) {
+                    basic.coupon = {
+                        code: this.coupon.code,
                         email: this.email,
                     }
                 }
+                return basic
             } else {
                 return {}
             }
@@ -322,7 +334,7 @@ export default {
         async load_coupon() {
             if (this.coupon_code) {
                 try {
-                    let url = "https://bitshares.eu/coupon/api/info/" + this.coupon_code + "/";
+                    let url = this.coupon_url + this.coupon_code + "/";
                     let response = await fetch(url)
                     if (response.status != 200) {
                         throw new Error(response.status)
@@ -395,6 +407,14 @@ export default {
                 if (!this.coupon.allow_register_premium_account)
                     this.errors.push('Only regular accounts are supported here!');
             }
+            /*
+            if (this.enable_coupon) {
+                if (!this.email)
+                    this.errors.push('Email address required for claiming coupon!');
+                if (!this.coupon_code)
+                    this.errors.push('Coupon code missing!');
+            }
+            */
             if (this.errors.length == 0) {
                 return true;
             } else {
@@ -444,6 +464,7 @@ export default {
                 ) {
                     this.account_registered = true;
                     this.loading_register = false
+                    this.response = response
                     this.$refs.modal_account_created.show()
                 } else {
                     if (response.error) {
